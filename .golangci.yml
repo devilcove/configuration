@@ -1,0 +1,43 @@
+version: "2"
+run:
+  timeout: 5m
+linters:
+  default: all
+  disable:
+    - depguard
+    - gochecknoglobals
+    - ireturn
+    - nlreturn
+    - noinlineerr
+    - paralleltest
+    - testpackage
+    - wsl
+    - wsl_v5
+  settings: 
+    exhaustruct:
+      allow-empty: true
+    gosec:
+      excludes:
+        - G302
+        - G304
+    revive:
+      enable-default-rules: true
+  exclusions:
+    generated: lax
+    # presets:
+      #- comments
+      #- common-false-positives
+      #- legacy
+      #- std-error-handling
+formatters:
+  enable:
+    - gofumpt
+    - golines
+  settings:
+    golines:
+      max-len: 120
+  exclusions:
+    generated: lax
+issues:
+    max-same-issues: 0
+    max-issues-per-linter: 0

@@ -15,7 +15,7 @@ import (
 const permission = 0o0600
 
 var (
-	cached any
+	cached = map[string]any{}
 	// ErrInterfaceConversion indicates that supplied T is different from cached type.
 	ErrInterfaceConversion = errors.New("interface conversion")
 	// ErrYAMLMarshal indicates error marshalling supplied data to YAML.
@@ -32,15 +32,20 @@ var (
 // - on subsequent calls, supplied T must be same as original T.
 //
 // - config file cannot be converted to supplied T.
-func Get[T any](config *T) error {
-	if cached == nil {
-		d, err := fromFile[T]()
+func Get[T any](config *T, names ...string) error {
+	name := "config"
+	if len(names) > 0 {
+		name = names[0]
+	}
+
+	if cached[name] == nil {
+		d, err := fromFile[T](name)
 		if err != nil {
 			return err
 		}
-		cached = &d
+		cached[name] = &d
 	}
-	data, ok := cached.(*T)
+	data, ok := cached[name].(*T)
 	if !ok {
 		return fmt.Errorf(
 			"%w: wanted %T but cached type is %T",
@@ -53,16 +58,16 @@ func Get[T any](config *T) error {
 	return nil
 }
 
-// Save saves the provided struct as a yaml config file in $XDG_CONFIG_HOME/executable name/config
+// Save saves the provided struct as a yaml config file in $XDG_CONFIG_HOME/executable name/
 // and updates the cache.
 // Error will be returned if:
 //
 // - both XDG_CONFIG_HOME and HOME env vars not set.
 //
-// - user lacks permission to write to XDG_CONFIG_HOME/<executable name>/config.
+// - user lacks permission to write to XDG_CONFIG_HOME/<executable name>/.
 //
 // - supplied strut T cannot be marshalled to yaml.
-func Save[T any](config *T) (err error) {
+func Save[T any](config *T, names ...string) (err error) {
 	// yaml.Marshal will panic with invalid data
 	defer func() {
 		if v := recover(); v != nil {
@@ -70,11 +75,16 @@ func Save[T any](config *T) (err error) {
 		}
 	}()
 	progName := filepath.Base(os.Args[0])
+	fileName := "config"
+	if len(names) > 0 {
+		fileName = names[0]
+	}
+
 	xdg, err := os.UserConfigDir()
 	if err != nil {
 		return fmt.Errorf("configuration dir %w", err)
 	}
-	cfgfile := filepath.Join(xdg, progName, "/config")
+	cfgfile := filepath.Join(xdg, progName, fileName)
 	bytes, err := yaml.Marshal(config)
 	// this err check is unnecessary, yaml.Marshal will panic with invalid data
 	if err != nil {
@@ -83,20 +93,20 @@ func Save[T any](config *T) (err error) {
 	if err := os.WriteFile(cfgfile, bytes, permission); err != nil {
 		return fmt.Errorf("unable to write file %s: %w", cfgfile, err)
 	}
-	cached = config
+	cached[fileName] = config
 	return nil
 }
 
 // func fromFile reads the yaml configuration file and unmarshals it into a struct of type T
 // config file location is $XDG_CONFIG_HOME/executable name/config.
-func fromFile[T any]() (T, error) {
+func fromFile[T any](fileName string) (T, error) {
 	var data T
 	progName := filepath.Base(os.Args[0])
 	xdg, err := os.UserConfigDir()
 	if err != nil {
 		return data, fmt.Errorf("configuration dir %w", err)
 	}
-	bytes, err := os.ReadFile(filepath.Join(xdg, progName, "config"))
+	bytes, err := os.ReadFile(filepath.Join(xdg, progName, fileName))
 	if err != nil {
 		return data, fmt.Errorf("read config file %w", err)
 	}

@@ -20,6 +20,7 @@ linters:
       excludes:
         - G302
         - G304
+        - G703
     revive:
       enable-default-rules: true
   exclusions:

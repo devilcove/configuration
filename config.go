@@ -19,7 +19,7 @@ var (
 	// ErrInterfaceConversion indicates that supplied T is different from cached type.
 	ErrInterfaceConversion = errors.New("interface conversion")
 	// ErrYAMLMarshal indicates error marshalling supplied data to YAML.
-	ErrYAMLMarshal = errors.New("unable to marshal data to yaml")
+	ErrYAMLMarshal = errors.New("unable to (un)marshal data to/from yaml")
 )
 
 // Get returns the configuration data for the supplied configuration struct type T, caching it after first retrieval.
@@ -101,7 +101,7 @@ func fromFile[T any]() (T, error) {
 		return data, fmt.Errorf("read config file %w", err)
 	}
 	if err := yaml.Unmarshal(bytes, &data); err != nil {
-		return data, fmt.Errorf("unmarshal %w", err)
+		return data, fmt.Errorf("%w %w", ErrYAMLMarshal, err)
 	}
 	return data, nil
 }

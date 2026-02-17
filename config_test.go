@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/Kairum-Labs/should"
-	"go.yaml.in/yaml/v4"
 )
 
 // test struct.
@@ -80,10 +79,7 @@ func TestRead(t *testing.T) {
 		err := os.WriteFile(filepath.Join(dir, progName, "config"), []byte("not: [valid"), permission)
 		should.BeNil(t, err)
 		config := testConfig{}
-		err = Get(&config)
-		should.NotBeNil(t, err)
-		expected := &yaml.ParserError{}
-		should.BeErrorAs(t, err, &expected)
+		should.BeErrorIs(t, Get(&config), ErrYAMLMarshal)
 	})
 
 	t.Run("filepermission", func(t *testing.T) {

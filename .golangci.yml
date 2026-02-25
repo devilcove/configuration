@@ -11,6 +11,7 @@ linters:
     - noinlineerr
     - paralleltest
     - testpackage
+    - wrapcheck
     - wsl
     - wsl_v5
   settings: 
@@ -18,18 +19,26 @@ linters:
       allow-empty: true
     gosec:
       excludes:
+        - G104
         - G302
         - G304
         - G703
+    mnd:
+      ignored-functions:
+        - os.MkdirAll
     revive:
       enable-default-rules: true
   exclusions:
     generated: lax
-    # presets:
+    presets:
       #- comments
-      #- common-false-positives
+      - common-false-positives
       #- legacy
-      #- std-error-handling
+      - std-error-handling
+    warn-unused: true
+    paths:
+      - example/main.go
+
 formatters:
   enable:
     - gofumpt

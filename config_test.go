@@ -107,8 +107,6 @@ func TestSave(t *testing.T) {
 		}
 		value := bad{A: 1, B: map[string]int{"a": 2}}
 		should.BeErrorIs(t, Save(&value), ErrYAMLMarshal)
-		var pathError *os.PathError
-		should.BeErrorAs(t, Get(&value), &pathError)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -133,6 +131,9 @@ func TestSave(t *testing.T) {
 		should.NotBeError(t, os.Chmod(filepath.Join(dir, progName), 0o0400))
 		var pathError *os.PathError
 		should.BeErrorAs(t, Save(config), &pathError)
-		should.NotBeError(t, os.Chmod(filepath.Join(dir, progName), 0o0755))
+		should.NotBeError(t, os.Chmod(filepath.Join(dir, progName), 0o700))
+		should.NotBeError(t, os.Chmod(filepath.Join(dir, progName, "config"), 0o0400))
+		should.BeErrorAs(t, Save(config), &pathError)
+		should.NotBeError(t, os.Chmod(filepath.Join(dir, progName, "config"), 0o0600))
 	})
 }

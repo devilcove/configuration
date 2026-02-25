@@ -45,6 +45,7 @@ func Get[T any](config *T, names ...string) error {
 		}
 		cached[name] = &d
 	}
+
 	data, ok := cached[name].(*T)
 	if !ok {
 		return fmt.Errorf(
@@ -54,12 +55,13 @@ func Get[T any](config *T, names ...string) error {
 			cached,
 		)
 	}
+
 	*config = *data
 	return nil
 }
 
 // Save saves the provided struct as a yaml config file in $XDG_CONFIG_HOME/executable name/
-// and updates the cache.
+// and updates the cache. Config dir and file willl be created if it dosen't exist
 // Error will be returned if:
 //
 // - both XDG_CONFIG_HOME and HOME env vars not set.
@@ -74,6 +76,7 @@ func Save[T any](config *T, names ...string) (err error) {
 			err = fmt.Errorf("%w: %v", ErrYAMLMarshal, v)
 		}
 	}()
+
 	progName := filepath.Base(os.Args[0])
 	fileName := "config"
 	if len(names) > 0 {
@@ -84,7 +87,15 @@ func Save[T any](config *T, names ...string) (err error) {
 	if err != nil {
 		return fmt.Errorf("configuration dir %w", err)
 	}
+
 	cfgfile := filepath.Join(xdg, progName, fileName)
+	// check if file exists and create if necessary
+	if _, err := os.Stat(cfgfile); err != nil {
+		if err := createFile(xdg, progName, fileName); err != nil {
+			return fmt.Errorf("unable to create file %s/%s/%s %w", xdg, progName, fileName, err)
+		}
+	}
+
 	bytes, err := yaml.Marshal(config)
 	// this err check is unnecessary, yaml.Marshal will panic with invalid data
 	if err != nil {
@@ -106,12 +117,29 @@ func fromFile[T any](fileName string) (T, error) {
 	if err != nil {
 		return data, fmt.Errorf("configuration dir %w", err)
 	}
+
 	bytes, err := os.ReadFile(filepath.Join(xdg, progName, fileName))
 	if err != nil {
 		return data, fmt.Errorf("read config file %w", err)
 	}
+
 	if err := yaml.Unmarshal(bytes, &data); err != nil {
 		return data, fmt.Errorf("%w %w", ErrYAMLMarshal, err)
 	}
 	return data, nil
+}
+
+// createFile creates any empty configfile. only call if config dir/file does not exist.
+func createFile(xdg, prog, file string) error {
+	if err := os.MkdirAll(filepath.Join(xdg, prog), 0o700); err != nil {
+		return err
+	}
+
+	f, err := os.Create(filepath.Join(xdg, prog, file))
+	if err != nil {
+		return err
+	}
+
+	f.Close()
+	return nil
 }
